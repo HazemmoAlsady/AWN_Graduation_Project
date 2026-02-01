@@ -2,7 +2,10 @@
 
 ## 📌 Overview
 This folder contains the **AI & Data Processing layer** of the **Awn Smart Humanitarian Platform**.  
-Its main responsibility is to prepare beneficiary data, classify assistance types, and decide whether AI models are required or rule-based logic is sufficient.
+Its main responsibility is to clean, preprocess, and analyze beneficiary data in order to:
+- Classify the required assistance type
+- Predict the level of need
+- Prepare trained AI models for backend integration
 
 > ⚠️ This layer does **not** include any UI or frontend logic.  
 > It is designed to integrate with the Backend (ASP.NET Core API).
@@ -13,32 +16,63 @@ Its main responsibility is to prepare beneficiary data, classify assistance type
 
 ### 1️⃣ Cleaning_data.ipynb
 #### 🎯 Purpose
-Cleans and prepares raw beneficiary data for further processing and decision-making.
+Cleans raw beneficiary data and removes inconsistencies before any analysis.
 
 #### 🛠️ What it does
 - Removes null and missing values
-- Standardizes column names and data formats
-- Fixes inconsistent or invalid values
-- Normalizes key attributes (income, family size, governorate, etc.)
+- Fixes inconsistent or invalid records
+- Standardizes column names and formats
+- Handles obvious data errors
 
 #### 📥 Input
 - Raw dataset (CSV / Excel / Database export)
 
 #### 📤 Output
-- Cleaned and normalized dataset (`cleaned_df`)
-- Ready for rule-based or AI-based processing
+- Cleaned dataset ready for preprocessing
 
 #### 🔗 Backend Usage
 - **This notebook must run first**
-- The backend consumes the cleaned data for:
-  - Assistance type classification
-  - Need level evaluation
+- Produces the base dataset for all next steps
 
 ---
 
-### 2️⃣ Rule_Based_Assistance_Type_Classification.ipynb
+### 2️⃣ Preprocessing_&_need_model.ipynb
 #### 🎯 Purpose
-Determines the **type of assistance required** using deterministic rule-based logic instead of machine learning.
+Performs **data preprocessing and model training** for AI-based decision making.
+
+This notebook prepares the data **before rule-based logic** and also trains ML models when needed.
+
+#### 🧠 What happens inside
+- Feature engineering (ratios, derived fields)
+- Encoding categorical variables
+- Handling missing values
+- Scaling numerical features
+- Training and evaluating ML models:
+  - Need Level Prediction (Low / Medium / High)
+  - Assistance Type Classification (Text + Structured Data)
+- Saving trained models as `.pkl` files for production use
+
+#### 📥 Input
+- Cleaned dataset from `Cleaning_data.ipynb`
+
+#### 📤 Output
+- Trained ML pipelines
+- Saved model files:
+  - `need_level_rf_pipeline.pkl`
+  - `need_level_target_encoder.pkl`
+  - `assistance_type_rf_pipeline.pkl`
+  - `assistance_type_target_encoder.pkl`
+
+#### 🔗 Backend Usage
+- Backend loads the saved `.pkl` models
+- Backend sends user input data
+- Model returns predictions directly (no preprocessing in backend)
+
+---
+
+### 3️⃣ Rule_Based_Assistance_Type_Classification.ipynb
+#### 🎯 Purpose
+Applies **deterministic rule-based logic** to classify assistance types without machine learning.
 
 #### 🧠 Logic Used
 - IF / ELSE conditions
@@ -54,10 +88,10 @@ Determines the **type of assistance required** using deterministic rule-based lo
 - School-aged children + low income → `Educational Assistance`
 
 #### 📥 Input
-- Cleaned dataset from `Cleaning_data.ipynb`
+- Preprocessed dataset
 
 #### 📤 Output
-- New column: `assistance_type`
+- Column: `assistance_type`
 - Possible values:
   - Financial
   - Medical
@@ -66,41 +100,10 @@ Determines the **type of assistance required** using deterministic rule-based lo
   - Mixed
 
 #### 🔗 Backend Usage
-- Used as a fast and transparent alternative to ML models
-- Suitable for MVP phase
-- Rules can be:
-  - Reimplemented directly in backend business logic
-  - Or kept as a reference for AI decisions
-
----
-
-### 3️⃣ Preprocessing_&_need_model.ipynb
-#### 🎯 Purpose
-Prepares data for predicting the **Need Level** of each case and evaluates whether an AI model is required.
-
-#### 🧠 What happens inside
-- Feature engineering
-- Encoding categorical variables
-- Scaling numerical features
-- Analysis to decide:
-  - Rule-based logic is sufficient
-  - OR an ML model is needed for need scoring
-
-#### 📥 Input
-- Cleaned data
-- Output from rule-based assistance classification
-
-#### 📤 Output
-- Preprocessed dataset ready for training
-- Clear decision regarding:
-  - ❌ No model needed
-  - ✅ Need Score ML model required
-
-#### 🔗 Backend Usage
-- If an ML model is trained:
-  - Backend calls it via REST API
-- If rule-based logic is sufficient:
-  - Backend relies only on predefined rules
+- Used when rule-based logic is sufficient
+- Acts as:
+  - A fast MVP solution
+  - A fallback or reference for AI decisions
 
 ---
 
@@ -110,8 +113,8 @@ Raw Data
    ↓
 Cleaning_data.ipynb
    ↓
-Rule_Based_Assistance_Type_Classification.ipynb
-   ↓
 Preprocessing_&_need_model.ipynb
+   ↓
+Rule_Based_Assistance_Type_Classification.ipynb
    ↓
 ASP.NET Core Backend API
